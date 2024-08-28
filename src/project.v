@@ -1,3 +1,13 @@
+/*
+test.py:
+commented out tests that take long time to run in test.py (temporary-change back)
+deleted old commented out code that was obsolete before v1
+changed test values of ui_in from 8 to 24 to account for a clock divider of 1
+
+notes: 
+strange thing about old test file: sets ui to a value then resets it to 0 after 
+  waiting for a period
+*/
 `default_nettype none
 
 module tt_um_acrypticcode (
@@ -10,73 +20,86 @@ module tt_um_acrypticcode (
     input  wire       clk,      // clock
     input  wire       rst_n     // reset_n - low to reset
 );
-
+  maindivider divmod (
+    .clk(clk),
+    .reset(reset_signal),
+    .divider_setting(divider_input),
+    .divout(divider_value)
+  );
 
   mainsqrs sqrsmod (
-    .clk(clk),
+    .clk(divider_value),
     .reset(reset_signal),
     .counter(counter_value),
     .perfout(sqrs_output)
   );
 
   mainexp3 exp3mod (
-    .clk(clk),
+    .clk(divider_value),
     .reset(reset_signal),
     .counter(counter_value),
     .expout(exp3_output)
   );
   
   maintri trimod (
-    .clk(clk),
+    .clk(divider_value),
     .reset(reset_signal),
     .counter(counter_value),
     .triout(tri_output)
   );
   
   mainfib fibmod (
-    .clk(clk),
+    .clk(divider_value),
     .reset(reset_signal),
     .fibout(fib_output)
   );
   
   mainpell pellmod (
-    .clk(clk),
+    .clk(divider_value),
     .reset(reset_signal),
     .pellout(pell_output)
   );
   
   mainluc lucmod (
-    .clk(clk),
+    .clk(divider_value),
     .reset(reset_signal),
     .lucout(luc_output)
   );
 
   mainpad padmod (
-    .clk(clk),
+    .clk(divider_value),
     .reset(reset_signal),
     .padout(pad_output)
   );
 
   mainsylv sylvmod (
-    .clk(clk),
+    .clk(divider_value),
     .reset(reset_signal),
     .sylvout(sylv_output)
   );
   
   maincounter counter_inst (
-    .clk(clk),
+    .clk(divider_value),
     .reset(reset_signal),
     .countout(counter_value)
   );
   
-  reg [7:0] sqrs_output, exp3_output, tri_output, fib_output, pell_output, luc_output, pad_output, sylv_output, counter_value;
-  reg reset_signal;
+  reg [7:0] sqrs_output, exp3_output, tri_output, fib_output, pell_output, luc_output, pad_output, sylv_output, counter_value,divider_input;
+  reg reset_signal, divider_value;
 
   
   // All output pins must be assigned. If not used, assign to 0.
+  assign divider_input[3:0] = ui_in[7:4];
+  assign divider_input[7:4] = 4'b0000;
   assign reset_signal = !rst_n || ui_in[3];
   assign uio_out = 0;
   assign uio_oe  = 0;
+
+  //assign uo_out[7:4] = 4'b1111;
+  //assign uo_out[2:0] = 3'b111;
+  //assign uo_out[3] = divider_value;
+  //assign uo_out = divider_input;
+  
   assign uo_out = 
     (ui_in[2:0] == 3'b000) ? sqrs_output :
     (ui_in[2:0] == 3'b001) ? exp3_output :
@@ -86,9 +109,49 @@ module tt_um_acrypticcode (
     (ui_in[2:0] == 3'b101) ? luc_output :
     (ui_in[2:0] == 3'b110) ? pad_output :
   sylv_output;
-
+  
 endmodule
 
+
+module maindivider(
+  input wire clk,
+  input wire reset,
+  input [7:0] divider_setting,
+  output reg divout //failed when using wire but consider changing back and fixing
+);
+  reg [23:0] count;
+  reg [23:0] divider_period;
+
+  assign divider_period =
+    (divider_setting[3:0] == 4'b0000) ? 1:
+    (divider_setting[3:0] == 4'b0001) ? 2:
+    (divider_setting[3:0] == 4'b0010) ? 5:
+    (divider_setting[3:0] == 4'b0011) ? 10:
+    (divider_setting[3:0] == 4'b0100) ? 20:
+    (divider_setting[3:0] == 4'b0101) ? 50:
+    (divider_setting[3:0] == 4'b0110) ? 100:
+    (divider_setting[3:0] == 4'b0111) ? 200:
+    (divider_setting[3:0] == 4'b1000) ? 500:
+    (divider_setting[3:0] == 4'b1001) ? 1000:
+    (divider_setting[3:0] == 4'b1010) ? 2000:
+    (divider_setting[3:0] == 4'b1011) ? 5000:
+    (divider_setting[3:0] == 4'b1100) ? 10000:
+    (divider_setting[3:0] == 4'b1101) ? 20000:
+    (divider_setting[3:0] == 4'b1110) ? 100000:
+  200000;
+
+  always@(posedge clk) begin
+    count <= count + 1;
+    if (count==divider_period-1) begin
+      count <= 0;
+      divout <= !divout;
+    end
+    if (reset) begin
+      divout <= 0;
+      count <= 0;
+    end
+  end
+endmodule
 
 module mainsqrs(
   input wire clk,
@@ -117,7 +180,6 @@ module mainexp3(
     end
   end
 endmodule
-
 
 module maintri(
   input wire clk,
@@ -166,7 +228,6 @@ module mainpell(
     end
   end
 endmodule
-
 
 
 module mainluc(
