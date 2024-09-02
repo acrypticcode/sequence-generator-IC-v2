@@ -1,12 +1,4 @@
 /*
-test.py:
-commented out tests that take long time to run in test.py (temporary-change back)
-deleted old commented out code that was obsolete before v1
-changed test values of ui_in from 8 to 24 to account for a clock divider of 1
-
-notes: 
-strange thing about old test file: sets ui to a value then resets it to 0 after 
-  waiting for a period
 */
 `default_nettype none
 
@@ -22,65 +14,66 @@ module tt_um_acrypticcode (
 );
   maindivider divmod (
     .clk(clk),
-    .reset(reset_signal),
+    .enable(ena),
+    .reset(!rst_n),
     .divider_setting(divider_input),
     .divout(divider_value)
   );
 
   mainsqrs sqrsmod (
     .clk(divider_value),
-    .reset(reset_signal),
+    .reset(!rst_n),
     .counter(counter_value),
     .perfout(sqrs_output)
   );
 
   mainexp3 exp3mod (
     .clk(divider_value),
-    .reset(reset_signal),
+    .reset(!rst_n),
     .counter(counter_value),
     .expout(exp3_output)
   );
   
   maintri trimod (
     .clk(divider_value),
-    .reset(reset_signal),
+    .reset(!rst_n),
     .counter(counter_value),
     .triout(tri_output)
   );
   
   mainfib fibmod (
     .clk(divider_value),
-    .reset(reset_signal),
+    .reset(!rst_n),
     .fibout(fib_output)
   );
   
   mainpell pellmod (
     .clk(divider_value),
-    .reset(reset_signal),
+    .reset(!rst_n),
     .pellout(pell_output)
   );
   
   mainluc lucmod (
     .clk(divider_value),
-    .reset(reset_signal),
+    .reset(!rst_n),
     .lucout(luc_output)
   );
 
   mainpad padmod (
     .clk(divider_value),
-    .reset(reset_signal),
+    .reset(!rst_n),
     .padout(pad_output)
   );
 
   mainsylv sylvmod (
     .clk(divider_value),
-    .reset(reset_signal),
+    .reset(!rst_n),
     .sylvout(sylv_output)
   );
   
   maincounter counter_inst (
     .clk(divider_value),
-    .reset(reset_signal),
+    .reset(!rst_n),
     .countout(counter_value)
   );
   
@@ -89,17 +82,14 @@ module tt_um_acrypticcode (
 
   
   // All output pins must be assigned. If not used, assign to 0.
-  assign divider_input[3:0] = ui_in[7:4];
+  assign divider_input[3:0] = ui_in[6:3];
   assign divider_input[7:4] = 4'b0000;
-  assign reset_signal = !rst_n || ui_in[3];
-  assign uio_out = 0;
-  assign uio_oe  = 0;
+  assign reset_signal = !rst_n;
+  //assign uio_out = 0;
+  assign uio_oe  = 255;//arbitrary decision-pins will not beused for either input or output
 
-  //assign uo_out[7:4] = 4'b1111;
-  //assign uo_out[2:0] = 3'b111;
-  //assign uo_out[3] = divider_value;
-  //assign uo_out = divider_input;
-  
+  assign uio_out = 0;
+
   assign uo_out = 
     (ui_in[2:0] == 3'b000) ? sqrs_output :
     (ui_in[2:0] == 3'b001) ? exp3_output :
@@ -115,6 +105,7 @@ endmodule
 
 module maindivider(
   input wire clk,
+  input wire enable,
   input wire reset,
   input [7:0] divider_setting,
   output reg divout //failed when using wire but consider changing back and fixing
@@ -137,14 +128,16 @@ module maindivider(
     (divider_setting[3:0] == 4'b1011) ? 5000:
     (divider_setting[3:0] == 4'b1100) ? 10000:
     (divider_setting[3:0] == 4'b1101) ? 20000:
-    (divider_setting[3:0] == 4'b1110) ? 100000:
-  200000;
+    (divider_setting[3:0] == 4'b1110) ? 50000:
+  100000;
 
   always@(posedge clk) begin
-    count <= count + 1;
-    if (count==divider_period-1) begin
-      count <= 0;
-      divout <= !divout;
+    if (enable) begin
+      count <= count + 1;
+      if (count==divider_period-1) begin
+        count <= 0;
+        divout <= !divout;
+      end
     end
     if (reset) begin
       divout <= 0;
@@ -159,10 +152,13 @@ module mainsqrs(
   input [7:0] counter,
   output reg [7:0] perfout
 );
-  always@(posedge clk) begin
-    perfout <= counter*counter;
+  always@(posedge clk or posedge reset) begin
+    
     if (reset) begin
       perfout <= 8'b00000000;
+    end
+    else begin
+      perfout <= counter*counter;
     end
   end
 endmodule
@@ -173,10 +169,12 @@ module mainexp3(
   input [7:0] counter,
   output reg [7:0] expout
 );
-  always@(posedge clk) begin
-    expout <= expout*3;
+  always@(posedge clk or posedge reset) begin
     if (reset) begin
       expout <= 8'b00000001;
+    end
+    else begin
+      expout <= expout*3;
     end
   end
 endmodule
@@ -187,10 +185,12 @@ module maintri(
   input [7:0] counter,
   output reg [7:0] triout
 );
-  always@(posedge clk) begin
-    triout <= triout+counter;
+  always@(posedge clk or posedge reset) begin
     if (reset) begin
       triout <= 8'b00000000;
+    end
+    else begin
+      triout <= triout+counter;
     end
   end
 endmodule
@@ -202,12 +202,14 @@ module mainfib(
   output reg [7:0] fibout
 );
   reg [7:0] nextout;    
-  always@(posedge clk) begin  
-    nextout <= nextout+fibout;
-    fibout <= nextout;
+  always@(posedge clk or posedge reset) begin  
     if (reset) begin
       nextout <= 8'b00000001;
       fibout <= 8'b00000001;
+    end
+    else begin
+      nextout <= nextout+fibout;
+      fibout <= nextout;
     end
   end
 endmodule
@@ -219,12 +221,14 @@ module mainpell(
   output reg [7:0] pellout
 );  
   reg [7:0] nextout;
-  always@(posedge clk) begin
-    nextout <= 2*nextout+pellout;
-    pellout <= nextout;
+  always@(posedge clk or posedge reset) begin
     if (reset) begin
       nextout <= 8'b00000001;
       pellout <= 8'b00000000;
+    end
+    else begin
+      nextout <= 2*nextout+pellout;
+      pellout <= nextout;
     end
   end
 endmodule
@@ -236,13 +240,15 @@ module mainluc(
   output reg [7:0] lucout
 );
   reg [7:0] nextout;
-  always@(posedge clk) begin
-    nextout <= nextout+lucout;
-    lucout <= nextout;
+  always@(posedge clk or posedge reset) begin
     if (reset) begin
       nextout <= 8'b00000001;
       lucout <= 8'b00000010;
     end 
+    else begin
+      nextout <= nextout+lucout;
+      lucout <= nextout;
+    end
   end  
 endmodule
 
@@ -254,14 +260,16 @@ module mainpad(
 );
   reg [7:0] next2;
   reg [7:0] next1;
-  always@(posedge clk) begin
-    next2 <= next1 + padout;
-    next1 <= next2;
-    padout <= next1;
+  always@(posedge clk or posedge reset) begin
     if (reset) begin
       next2 <= 8'b00000001;
       next1 <= 8'b00000001;
       padout <= 8'b00000001;
+    end
+    else begin
+      next2 <= next1 + padout;
+      next1 <= next2;
+      padout <= next1;
     end
   end
 endmodule
@@ -273,13 +281,15 @@ module mainsylv(
   output reg [7:0] sylvout
 );
   reg [7:0] nextout;
-  always@(posedge clk) begin
-    nextout <= nextout*(nextout-1)+1;
-    sylvout <= nextout;
+  always@(posedge clk or posedge reset) begin
     if (reset) begin
       sylvout <= 8'b00000010;
       nextout <= 8'b00000011;
-    end    
+    end
+    else begin
+      nextout <= nextout*(nextout-1)+1;
+      sylvout <= nextout;
+    end
   end
 endmodule
 
@@ -289,10 +299,12 @@ module maincounter(
   input wire reset,
   output reg [7:0] countout
 );
-  always@(posedge clk) begin
-    countout <= countout+8'b00000001;
+  always@(posedge clk or posedge reset) begin
     if (reset) begin
       countout <= 8'b00000001;
+    end
+    else begin
+      countout <= countout+8'b00000001;
     end
   end  
 endmodule
