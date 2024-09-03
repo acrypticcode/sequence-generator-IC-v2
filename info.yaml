@@ -22,13 +22,13 @@ project:
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 pinout:
   # Inputs
-  ui[0]: "sequence selector"
-  ui[1]: "sequence selector"
-  ui[2]: "sequence selector"
-  ui[3]: "manual reset"
-  ui[4]: ""
-  ui[5]: ""
-  ui[6]: ""
+  ui[0]: "sequence selector bit 0"
+  ui[1]: "sequence selector bit 1"
+  ui[2]: "sequence selector bit 2"
+  ui[3]: "clock divider setter bit 0"
+  ui[4]: "clock divider setter bit 1"
+  ui[5]: "clock divider setter bit 2"
+  ui[6]: "clock divider setter bit 3"
   ui[7]: ""
 
   # Outputs
