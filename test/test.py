@@ -22,7 +22,7 @@ async def test_project(dut):
 
     dut._log.info("Test project behavior")
 
-    # Set the input values you want to test
+    # Set the input values to test
     dut.ui_in.value = 0
     dut.uio_in.value = 0
     
@@ -31,7 +31,7 @@ async def test_project(dut):
 
     
     expected_values = [
-    [(1, 0), (2, 1), (3, 4), (4, 9), (5, 16)],#(6,0),(7,0),(8,0),(9,0),(10,0),(11,0),(12,0)], #last ones don't have expected values
+    [(1, 0), (2, 1), (3, 4), (4, 9), (5, 16)],
     [(1, 1), (2, 3), (3, 9), (4, 27), (5, 81)],
     [(1, 0), (2, 1), (3, 3), (4, 6), (5, 10)],
     [(1, 1), (2, 1), (3, 2), (4, 3), (5, 5)],
@@ -58,7 +58,6 @@ async def test_project(dut):
         for i in range(0, 7):
             print(f"-----i = {i}-----")
             dut.ui_in.value = 8*n+i
-            #await ClockCycles(dut.clk,1)
             dut.rst_n.value = 0
             await ClockCycles(dut.clk, 100)
             dut.rst_n.value=1
@@ -74,7 +73,6 @@ async def test_project(dut):
                     print(f"Term: {term}, Expected: {expected}, Actual: {actual}")
                     assert expected==actual
                 previous_term = term
-                #await ClockCycles(dut.clk, clock_cycles) #moved from above
 
     dut.ena.value = 0
     for n in range (1,5):
@@ -82,7 +80,6 @@ async def test_project(dut):
         for i in range(0, 7):
             print(f"-----i = {i}-----")
             dut.ui_in.value = 8*n+i
-            #await ClockCycles(dut.clk,1)
             dut.rst_n.value = 0
             await ClockCycles(dut.clk, 100)
             dut.rst_n.value=1
